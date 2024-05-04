@@ -1,0 +1,23 @@
+CMake Error:
+  Running
+
+   'C:/Users/HP/.espressif/tools/ninja/1.11.1/ninja.exe' '-C' 'D:/Git/DA1_SmartHome/sensor_node/build' '-t' 'recompact'
+
+  failed with:
+
+   ninja: error: failed recompaction: Permission denied
+
+
+
+CMake Error:
+  Running
+
+   'C:/Users/HP/.espressif/tools/ninja/1.11.1/ninja.exe' '-C' 'D:/Git/DA1_SmartHome/sensor_node/build' '-t' 'restat' 'build.ninja'
+
+  failed with:
+
+   ninja: error: failed recompaction: Permission denied
+
+
+
+CMake Generate step failed.  Build files cannot be regenerated correctly.

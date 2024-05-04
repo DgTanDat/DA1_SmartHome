@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/CMakeFiles/bootloader"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/CMakeFiles/bootloader.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/CMakeFiles/bootloader-complete.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
+		},
+		{
+			"file" : "D:/Git/DA1_SmartHome/sensor_node/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"bootloader"
+		],
+		"name" : "bootloader"
+	}
+}
