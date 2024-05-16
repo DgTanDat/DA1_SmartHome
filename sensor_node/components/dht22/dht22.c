@@ -5,6 +5,9 @@
 #include <freertos/FreeRTOS.h>
 #include <string.h>
 
+static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+#define PORT_ENTER_CRITICAL() portENTER_CRITICAL(&mux)
+#define PORT_EXIT_CRITICAL() portEXIT_CRITICAL(&mux)
 
 // DHT timer precision in microseconds
 #define DHT_TIMER_INTERVAL 2
@@ -108,8 +111,9 @@ esp_err_t dht_read_data(gpio_num_t pin, int16_t *humidity, int16_t *temperature)
     gpio_set_direction(pin, GPIO_MODE_OUTPUT_OD);
     gpio_set_level(pin, 1);
 
+    PORT_ENTER_CRITICAL();
     esp_err_t result = dht_fetch_data(pin, data);
-
+    PORT_EXIT_CRITICAL();
     if (result != ESP_OK)
     {
         return result;

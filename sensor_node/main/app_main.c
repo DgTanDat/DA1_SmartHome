@@ -55,8 +55,8 @@ static void log_error_if_nonzero(const char *message, int error_code)
 
 int retry_num=0;
 float temperature, humidity;
-char topic1[50] = "esp32/Humi";
-char topic2[50] = "esp32/Temp";
+char topic1[50] = "esp32/Sensor";
+char deviceName[20] = "SensorNode-1";
 char data[256];
 float temp = 0;
 int qos = 1;
@@ -292,27 +292,32 @@ void app_main(void)
 
     mqtt_app_start();
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_INPUT);
-    esp_mqtt_client_subscribe(client, topic1, qos);
+    gpio_set_direction(GPIO_NUM_5, GPIO_MODE_INPUT);
+    //esp_mqtt_client_subscribe(client, topic1, qos);
 
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11);
-   // convert the cJSON object to a JSON string 
     while (1)
     {
         if (dht_read_float_data(GPIO_NUM_4, &humidity, &temperature) == ESP_OK)
-            printf("{Sensor_data}Humidity: %.1f%% Temp: %.1fC\n", humidity, temperature);
+            printf("Humidity: %.1f%% Temp: %.1fC\n", humidity, temperature);
         else
             printf("Could not read data from sensor\n");
         
 
-        int value = adc1_get_raw(ADC1_CHANNEL_6);
-        printf("LDR: %d\n", value);
+        int brightness = adc1_get_raw(ADC1_CHANNEL_6);
+        printf("LDR: %d\n", brightness);
+        
 
-        sprintf(data, "Temp:%.1f, Humi:%.1f, LDR:%d", temperature, humidity, value);
+        int humanPresent = gpio_get_level(GPIO_NUM_5);
+        printf("Have human: %d\n", humanPresent);
+
+        sprintf(data, "device_name: %s, human_present: %d, brightness: %d, temperature:%.1f, humidity:%.1f", deviceName, 
+        humanPresent, brightness, temperature, humidity);
 
         esp_mqtt_client_publish(client, topic1, data, sizeof(data), qos, 0);
 
-        vTaskDelay(1000);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
     
 }
