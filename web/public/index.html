@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ESP Datalogging Firebase App</title>
+
+    <!-- include Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-app.js"></script>
+
+    <!-- include only the Firebase features as you need -->
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-database.js"></script>
+
+    <script>
+      // Replace with your app config object
+      const firebaseConfig = {
+        apiKey: "AIzaSyAxgXtsAHZZei2AxrnIob5uZYe4bPJnU5U",
+        authDomain: "ce232-smhm.firebaseapp.com",
+        databaseURL: "https://ce232-smhm-default-rtdb.firebaseio.com",
+        projectId: "ce232-smhm",
+        storageBucket: "ce232-smhm.appspot.com",
+        messagingSenderId: "1015089618418",
+        appId: "1:1015089618418:web:c5d9441adcd68922681f6b"
+      };
+
+      // Initialize firebase
+      firebase.initializeApp(firebaseConfig);
+
+      // Make auth and database references
+      const auth = firebase.auth();
+      const db = firebase.database();
+
+    </script>
+
+    <!-- include highchartsjs to build the charts-->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <!-- include to use jquery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!--include icons from fontawesome-->
+    <script src="https://kit.fontawesome.com/593955deb6.js" crossorigin="anonymous"></script>
+    <!--reference for favicon-->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <!--reference a stylesheet-->
+    <link rel="stylesheet" type="text/css" href="style.css">
+
+    
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 700,
+        'GRAD' 0,
+        'opsz' 48
+      }
+    </style>
+
+  </head>
+
+  <body>
+
+    <!--TOP BAR-->
+    <div class="topnav">
+      <h1>Smart Home <i class="fas fa-clipboard-list"></i></h1>
+    </div>
+
+    <!--AUTHENTICATION BAR (USER DETAILS/LOGOUT BUTTON)-->
+    <div id="authentication-bar" style="display: none;">
+      <p><span id="authentication-status">User logged in</span>
+        <span id="user-details">USEREMAIL</span>
+        <a href="/" id="logout-link">(logout)</a>
+      </p>
+    </div>
+
+    <!--LOGIN FORM-->
+    <form id="login-form" style="display: none;">
+      <div class="form-elements-container">
+        <label for="input-email"><b>Email</b></label>
+        <input type="text" placeholder="Enter Username" id="input-email" required>
+
+        <label for="input-password"><b>Password</b></label>
+        <input type="password" placeholder="Enter Password" id="input-password" required>
+
+        <button type="submit" id="login-button">Login</button>
+        <p id="error-message" style="color:red;"></p>
+      </div>
+    </form>
+
+    <!--CONTENT (SENSOR READINGS)-->
+    <div class="content-sign-in" id="content-sign-in" style="display: none;">
+
+      <!--LAST UPDATE-->
+      <p><span class ="date-time">Last update: <span id="lastUpdate"></span></span></p>
+      <div id="cards-div">
+        <div class="cards">
+          <!--TEMPERATURE-->
+          <div class="card">
+            <p><i class="fa-solid fa-temperature-three-quarters" style="color:#059e8a;"></i> TEMPERATURE</p>
+            <p><span class="reading"><span id="temp"></span> &deg;C</span></p>
+          </div>
+          <!--HUMIDITY-->
+          <div class="card">
+            <p><i class="fa-solid fa-droplet" style="color:#00add6;"></i> HUMIDITY</p>
+            <p><span class="reading"><span id="hum"></span> &percnt;</span></p>
+          </div>
+          <!--BRIGHTNESS-->
+          <div class="card">
+            <p><i class="fa-solid fa-sun" style="color:#e9a13c;"></i> BRIGHTNESS</p>
+            <p><span class="reading"><span id="brns"></span></span></p>
+          </div>
+          <!--HUMAN PRESENT-->
+          <div class="card">
+            <p><i class="fa-solid fa-user" style="color:#1e2221;"></i> HUMAN PRESENCE</p>
+            <p><span class="reading"><span id="pres"></span></span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mode_div">
+        <!--MODE-->
+        <div class="box">
+          <p><i class="fa-solid fa-arrows-rotate"></i> MODE:</p>
+          <p><span class="reading"><span id="mode"></span></span></p>
+          <p></p>
+          <!-- Rounded switch -->
+          <div class="text-center">
+            <label class="switch">
+              <input id="mode_checkbox" type="checkbox">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="devices_box">
+        <!--VOICE RECOGNITION-->
+        <div class="card">
+          <p><i class="fa-solid fa-microphone"></i> VOICE CONTROL</p>
+          <p id="transcript">Nhận dạng giọng nói sẽ xuất hiện ở đây...</p>
+          <button id="start-btn">START</button>
+        </div>
+        <!-- DOOR STATE -->
+        <div class="card">
+          <p class="card-text">DOOR</p>
+          <img src="image/doorCLOSE.png" alt="door_img" id="doorimg" style="width:80px">
+          <div class="card-body">
+            <!-- <p><span class="reading"><span id="door_state"></span></span></p> -->
+            <button type="button" class="btn_off" id="door-btncl">CLOSE</button>
+            <button type="button" class="btn_on" id="door-btnop">OPEN</button>
+          </div>
+        </div>
+        <!--LIGHT STATE-->
+        <div class="card">
+         <p class="card-text">LIGHT</p>
+         <img src="image/lightOFF.png" alt="light_img" id="lightimg" style="width:80px">
+         <div class="card-body">
+            <!-- <p><span class="reading"><span id="light_state"></span></span></p> -->
+            <button type="button" class="btn_off" id="light-btnoff">OFF</button>
+            <button type="button" class="btn_on" id="light-btnon">ON</button>
+         </div>
+        </div>
+        <!--FAN STATE-->
+        <div class="card">
+          <p class="card-text">FAN</p>
+          <img src="image/fan0.png" alt="fan_img" id="fanimg" style="width:80px">
+          <div class="card-body">
+            <!-- <p><span class="reading"><span id="fan_state"></span></span></p> -->
+            <button type="button" class="btn_off" id="fan-btnoff">0</button>
+            <button type="button" class="btn_on" id="fan-btnon1">1</button>
+            <button type="button" class="btn_on" id="fan-btnon2">2</button>
+          </div>
+        </div>
+      </div>
+
+      <!--CHARTS-->
+      <div id="charts-div" style="display:block">
+        <!--TEMPERATURE-CHART-->
+        <div class="cards">
+          <div class="card">
+            <p><i class="fas fa-thermometer-half" style="color:#059e8a;"></i> TEMPERATURE CHART</p>
+            <div id="chart-temperature" class="chart-container"></div>
+          </div>
+        </div>
+        <!--HUMIDITY-CHART-->
+        <div class="cards">
+          <div class="card">
+            <p><i class="fas fa-tint" style="color:#00add6;"></i> HUMIDITY CHART</p>
+            <div id="chart-humidity" class="chart-container"></div>
+          </div>
+        </div>
+        <!--HMP-CHART-->
+        <div class="cards">
+          <div class="card">
+            <p><i class="fas fa-user" style="color:#323a3c;"></i> HUMAN PRESENRCE CHART</p>
+            <div id="chart-humanpresence" class="chart-container"></div>
+          </div>
+        </div>
+        <!--BRNS-CHART-->
+        <div class="cards">
+          <div class="card">
+            <p><i class="fas fa-sun" style="color:#e9a13c;"></i> BRIGHTNESS CHART</p>
+            <div id="chart-brightness" class="chart-container"></div>
+          </div>
+        </div>
+      </div>
+
+    <!--BUTTONS TO HANDLE DATA-->
+    <p>
+      <!--View data button-->
+      <button id="view-data-button">View data</button>
+      <!--Hide data button-->
+      <button id="hide-data-button" style= "display:none;">Hide data</button>
+    </p>
+
+    <!--TABLE WITH ALL DATA-->
+    <div class ="cards">
+      <div class="card" id="table-container" style= "display:none;">
+        <table id="readings-table">
+            <tr id="theader">
+              <th>Timestamp</th>
+              <th>Temp (ºC)</th>
+              <th>Hum (%)</th>
+              <th>HumanP </th>
+              <th>Brightness </th>
+            </tr>
+            <tbody id="tbody">
+            </tbody>
+        </table>
+        <p><button id="load-data" style= "display:none;">More results...</button></p>
+      </div>
+    </div>
+  </div>
+
+    <!--INCLUDE JS FILES-->
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/charts-definition.js"></script>
+    <script src="scripts/index.js"></script>
+
+  </body>
+
+</html>

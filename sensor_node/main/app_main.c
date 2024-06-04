@@ -39,7 +39,12 @@
 
 static const char *TAG = "mqtt_example";
 #define USER_SSID "d"
-#define USER_PASSWORD "21521927"
+#define USER_PASSWORD "21521922"
+#define STORAGE_NAMESPACE "storage"
+
+#define DHT22_PIN GPIO_NUM_4
+#define LD2410_PIN GPIO_NUM_5
+#define LDR_PIN ADC1_CHANNEL_6
 
 static const int CONNECTED_BIT = BIT0;
 static const int ESPTOUCH_DONE_BIT = BIT1;
@@ -60,8 +65,91 @@ char deviceName[20] = "SensorNode-1";
 char data[256];
 float temp = 0;
 int qos = 1;
+uint8_t uwifi_ssid[32] = "d";
+uint8_t uwifi_password[64] = "21521922";
 
 static void smartconfig_example_task(void * parm);
+
+esp_err_t get_wifi_user_config(void)
+{
+    nvs_handle_t my_handle;
+    esp_err_t err;
+    printf("read nvs\n");
+    // Open
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) return err;
+
+    size_t required_size = 0;  // value will default to 0, if not set yet in NVS
+    // obtain required memory space to store blob being read from NVS
+    err = nvs_get_blob(my_handle, "wifi_ssid", NULL, &required_size);
+    if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) return err;
+    printf("wifi_ssid:");
+    if (required_size == 0) {
+        printf("Nothing saved yet!\n");
+    } else {
+        uint8_t* wifi_ssid = malloc(required_size);
+        err = nvs_get_blob(my_handle, "wifi_ssid", wifi_ssid, &required_size);
+        if (err != ESP_OK) {
+            free(wifi_ssid);
+            
+        }
+        for (size_t i = 0; i < required_size; i++) {
+            printf("%c", wifi_ssid[i]);
+        }
+        printf("\n");
+        memcpy(uwifi_ssid, wifi_ssid, sizeof(uwifi_ssid));
+        free(wifi_ssid);
+    }
+
+    required_size = 0;  
+    err = nvs_get_blob(my_handle, "wifi_password", NULL, &required_size);
+    if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) return err;
+    printf("wifi_password:");
+    if (required_size == 0) {
+        printf("Nothing saved yet!\n");
+    } else {
+        uint8_t* wifi_password = malloc(required_size);
+        err = nvs_get_blob(my_handle, "wifi_password", wifi_password, &required_size);
+        if (err != ESP_OK) {
+            free(wifi_password);
+            return err;
+        }
+        for (size_t i = 0; i < required_size; i++) {
+            printf("%c", wifi_password[i]);
+        }
+        printf("\n");
+        memcpy(uwifi_password, wifi_password, sizeof(uwifi_password));
+        free(wifi_password);
+    }
+
+    // Close
+    nvs_close(my_handle);
+    return ESP_OK;
+}
+
+esp_err_t save_wifi_inf(uint8_t* wifi_ssid, uint8_t* wifi_password)
+{
+    nvs_handle_t my_handle;
+    esp_err_t err;
+
+    // Open
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) return err;
+
+    err = nvs_set_blob(my_handle, "wifi_ssid", wifi_ssid, 32);
+    if (err != ESP_OK) return err;
+
+    err = nvs_set_blob(my_handle, "wifi_password", wifi_password, 64);
+    if (err != ESP_OK) return err;
+
+    // Commit
+    err = nvs_commit(my_handle);
+    if (err != ESP_OK) return err;
+
+    // Close
+    nvs_close(my_handle);
+    return ESP_OK;
+}
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
@@ -127,6 +215,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         memcpy(password, evt->password, sizeof(evt->password));
         ESP_LOGI(WIFI_TAG, "SSID:%s", ssid);
         ESP_LOGI(WIFI_TAG, "PASSWORD:%s", password);
+        save_wifi_inf(ssid, password);
         if (evt->type == SC_TYPE_ESPTOUCH_V2) {
             ESP_ERROR_CHECK( esp_smartconfig_get_rvd_data(rvd_data, sizeof(rvd_data)) );
             ESP_LOGI(WIFI_TAG, "RVD_DATA:");
@@ -159,20 +248,21 @@ void wifi_connection()
     esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_event_handler, NULL);
     esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_event_handler, NULL);
     esp_event_handler_register(SC_EVENT, ESP_EVENT_ANY_ID, wifi_event_handler, NULL);
-    wifi_config_t wifi_configuration = {
-        .sta = {
-            .ssid = USER_SSID,
-            .password = USER_PASSWORD
-            }
-        };
+    wifi_config_t wifi_configuration;
+    //  = {
+    //     .sta = {
+    //         .ssid = USER_SSID,
+    //         .password = USER_PASSWORD
+    //         }
+    //     };
+    bzero(&wifi_configuration, sizeof(wifi_config_t));
+    memcpy(wifi_configuration.sta.ssid, uwifi_ssid, sizeof(wifi_configuration.sta.ssid));
+    memcpy(wifi_configuration.sta.password,  uwifi_password, sizeof(wifi_configuration.sta.password));
     esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_configuration);
-    // 3 - Wi-Fi Start Phase
     esp_wifi_start();
     esp_wifi_set_mode(WIFI_MODE_STA);
-    // 4- Wi-Fi Connect Phase
     esp_wifi_connect();
-    printf( "wifi_init_softap finished. SSID:%s  password:%s",USER_SSID,USER_PASSWORD);
-    
+    printf( "wifi_init_softap finished. SSID:%s  password:%s", uwifi_ssid, uwifi_password);
 }
 
 static void smartconfig_example_task(void * parm)
@@ -251,11 +341,19 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 static void mqtt_app_start(void)
 {
+    // esp_mqtt_client_config_t mqtt_cfg = {
+    //     .broker.address.uri = "mqtt://mqtt.flespi.io:1883",
+    //     .credentials.username = "o5DKonYxncEKrNRJ2FfUFBHH09LhkNMyJf6VsUgEUKe9oVJeqOYWdvt3v2aDGKZd",
+    //     .credentials.authentication.password = "",
+    //     .credentials.client_id = "esp3201",
+    // };
+
     esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = "mqtt://mqtt.flespi.io:1883",
-        .credentials.username = "oWLsmINUN4kOw7FTJ8DDzuu24lS5aYUvsxqbJu6A8VgG3aoJ6OZC8GmTQw3LG4At",
-        .credentials.authentication.password = "",
+        .broker.address.uri = "mqtt://broker.emqx.io",
+        .credentials.username = "esp32",
+        .credentials.authentication.password = "d123456",
         .credentials.client_id = "esp3201",
+
     };
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
@@ -280,44 +378,48 @@ void app_main(void)
     esp_log_level_set("transport", ESP_LOG_VERBOSE);
     esp_log_level_set("outbox", ESP_LOG_VERBOSE);
 
-    ESP_ERROR_CHECK(nvs_flash_init());
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        // NVS partition was truncated and needs to be erased
+        // Retry nvs_flash_init
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK( err );
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    /* This helper function configures Wi-Fi or Ethernet, as selected in menuconfig.
-     * Read "Establishing Wi-Fi or Ethernet Connection" section in
-     * examples/protocols/README.md for more information about this function.
-     */
+    err = get_wifi_user_config();
+    if (err != ESP_OK) printf("Error (%s) reading data from NVS!\n", esp_err_to_name(err));
+    
     wifi_connection();
 
     mqtt_app_start();
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_NUM_5, GPIO_MODE_INPUT);
-    //esp_mqtt_client_subscribe(client, topic1, qos);
+    gpio_set_direction(DHT22_PIN, GPIO_MODE_INPUT);
+    gpio_set_direction(LD2410_PIN, GPIO_MODE_INPUT);
 
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11);
+    adc1_config_channel_atten(LDR_PIN, ADC_ATTEN_DB_11);
     while (1)
     {
-        if (dht_read_float_data(GPIO_NUM_4, &humidity, &temperature) == ESP_OK)
+        if (dht_read_float_data(DHT22_PIN, &humidity, &temperature) == ESP_OK)
             printf("Humidity: %.1f%% Temp: %.1fC\n", humidity, temperature);
         else
             printf("Could not read data from sensor\n");
         
 
-        int brightness = adc1_get_raw(ADC1_CHANNEL_6);
+        int brightness = adc1_get_raw(LDR_PIN);
         printf("LDR: %d\n", brightness);
         
 
-        int humanPresent = gpio_get_level(GPIO_NUM_5);
+        int humanPresent = gpio_get_level(LD2410_PIN);
         printf("Have human: %d\n", humanPresent);
 
-        sprintf(data, "device_name: %s, human_present: %d, brightness: %d, temperature:%.1f, humidity:%.1f", deviceName, 
+        sprintf(data, "device_name: %s, human_presence: %d, brightness: %d, temperature:%.1f, humidity:%.1f", deviceName, 
         humanPresent, brightness, temperature, humidity);
 
         esp_mqtt_client_publish(client, topic1, data, sizeof(data), qos, 0);
 
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
-    
 }

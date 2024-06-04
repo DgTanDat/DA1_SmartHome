@@ -43,8 +43,11 @@
 static const char *TAG = "mqtt_example";
 
 #define WIFI_SSID "d"
-#define WIFI_PASSWORD "21521922"
+#define WIFI_PASSWORD "21521929"
 #define STORAGE_NAMESPACE "storage"
+
+#define GPIO_PWM0A_OUT 26   //Set GPIO 15 as PWM0A
+#define GPIO_PWM0B_OUT 27   //Set GPIO 16 as PWM0B
 
 #define SERVO_MIN_PULSEWIDTH_US 500  // Minimum pulse width in microsecond
 #define SERVO_MAX_PULSEWIDTH_US 2500  // Maximum pulse width in microsecond
@@ -67,6 +70,7 @@ static const int CONNECTED_BIT = BIT0;
 static const int ESPTOUCH_DONE_BIT = BIT1;
 static const char *WIFI_TAG = "smartconfig_example";
 static EventGroupHandle_t s_wifi_event_group;
+mcpwm_cmpr_handle_t comparator;
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -76,14 +80,16 @@ static void log_error_if_nonzero(const char *message, int error_code)
 }
 
 int retry_num=0;
-char light_control_topic[50] = "esp32/LightControl";
+char control_topic[50] = "esp32/Control";
+char topic1[50] = "esp32/StateDv";
+char data[256];
 int lightState = -1;
 int doorState = -1;
 int fanState = -1;
 int qos = 1;
 char key[20] = {};
 uint8_t uwifi_ssid[32] = "d";
-uint8_t uwifi_password[64] = "21521922";
+uint8_t uwifi_password[64] = "21521929";
 
 static inline uint32_t example_angle_to_compare(int angle)
 {
@@ -92,7 +98,7 @@ static inline uint32_t example_angle_to_compare(int angle)
 
 static void smartconfig_example_task(void * parm);
 
-esp_err_t print_what_saved(void)
+esp_err_t get_wifi_user_config(void)
 {
     nvs_handle_t my_handle;
     esp_err_t err;
@@ -105,7 +111,7 @@ esp_err_t print_what_saved(void)
     // obtain required memory space to store blob being read from NVS
     err = nvs_get_blob(my_handle, "wifi_ssid", NULL, &required_size);
     if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) return err;
-    printf("wifi_ssid:\n");
+    printf("wifi_ssid:");
     if (required_size == 0) {
         printf("Nothing saved yet!\n");
     } else {
@@ -115,7 +121,6 @@ esp_err_t print_what_saved(void)
             free(wifi_ssid);
             
         }
-        printf("WiFi SSID: ");
         for (size_t i = 0; i < required_size; i++) {
             printf("%c", wifi_ssid[i]);
         }
@@ -127,7 +132,7 @@ esp_err_t print_what_saved(void)
     required_size = 0;  
     err = nvs_get_blob(my_handle, "wifi_password", NULL, &required_size);
     if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) return err;
-    printf("wifi_password:\n");
+    printf("wifi_password:");
     if (required_size == 0) {
         printf("Nothing saved yet!\n");
     } else {
@@ -137,7 +142,6 @@ esp_err_t print_what_saved(void)
             free(wifi_password);
             return err;
         }
-        printf("WiFi password: ");
         for (size_t i = 0; i < required_size; i++) {
             printf("%c", wifi_password[i]);
         }
@@ -175,6 +179,34 @@ esp_err_t save_wifi_inf(uint8_t* wifi_ssid, uint8_t* wifi_password)
     return ESP_OK;
 }
 
+void motor_set_level(int level)
+{
+    int duty;
+    switch (level)
+    {
+    case 0:
+        duty = 0;
+        break;
+    case 1:
+        duty = 50;
+        break;
+    case 2:
+        duty = 95;
+        break;
+    default:
+        duty = 0;
+        break;
+    }
+    // if(duty != 0)
+    // {
+    //     brushed_motor_forward(MCPWM_UNIT_0, MCPWM_TIMER_0, duty);
+    // }
+    // else
+    // {
+    //     brushed_motor_stop(MCPWM_UNIT_0, MCPWM_TIMER_0);
+    // }
+}
+
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) 
@@ -184,7 +216,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED)
     {
         printf("WiFi CONNECTED\n");
-
+        
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) 
     {
@@ -292,7 +324,6 @@ void wifi_connection()
     esp_wifi_start();
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_connect();
-    // printf( "wifi_init_softap finished. SSID:%s  password:%s", WIFI_SSID, WIFI_PASSWORD);
     printf( "wifi_init_softap finished. SSID:%s  password:%s", uwifi_ssid, uwifi_password);
 }
 
@@ -312,64 +343,6 @@ static void smartconfig_example_task(void * parm)
             esp_smartconfig_stop();
             vTaskDelete(NULL);
         }
-    }
-}
-
-mcpwm_cmpr_handle_t comparator;
-esp_mqtt_event_handle_t event;
-esp_mqtt_client_handle_t client;
-static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
-{
-    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
-    event = event_data;
-    client = event->client;
-    switch ((esp_mqtt_event_id_t)event_id) {
-    case MQTT_EVENT_CONNECTED:
-        ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-        esp_mqtt_client_subscribe(client, light_control_topic, qos);
-        break;
-    case MQTT_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-        break;
-
-    case MQTT_EVENT_SUBSCRIBED:
-        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        break;
-    case MQTT_EVENT_UNSUBSCRIBED:
-        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-        break;
-    case MQTT_EVENT_PUBLISHED:
-        ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-        break;
-    case MQTT_EVENT_DATA:
-        ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        printf("DATA=%.*s\r\n", event->data_len, event->data);
-        cJSON *root = cJSON_Parse(event->data);
-        if (root == NULL) {
-            printf("Can not parse JSON.\n");
-        }
-        cJSON *lstate = cJSON_GetObjectItemCaseSensitive(root, "Light");
-        lightState = lstate->valueint;
-        cJSON *dstate = cJSON_GetObjectItemCaseSensitive(root, "Door");
-        doorState = dstate->valueint;
-        cJSON *fstate = cJSON_GetObjectItemCaseSensitive(root, "Fan");
-        fanState = fstate->valueint;
-        cJSON_Delete(root);
-        break;
-    case MQTT_EVENT_ERROR:
-        ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
-            log_error_if_nonzero("reported from esp-tls", event->error_handle->esp_tls_last_esp_err);
-            log_error_if_nonzero("reported from tls stack", event->error_handle->esp_tls_stack_err);
-            log_error_if_nonzero("captured as transport's socket errno",  event->error_handle->esp_transport_sock_errno);
-            ESP_LOGI(TAG, "Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
-
-        }
-        break;
-    default:
-        ESP_LOGI(TAG, "Other event id:%d", event->event_id);
-        break;
     }
 }
 
@@ -424,87 +397,45 @@ void servo_ctrl_init()
     ESP_ERROR_CHECK(mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP));
 }
 
-void motor_ctrl_init()
+esp_mqtt_event_handle_t event;
+esp_mqtt_client_handle_t client;
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    // Prepare and then apply the LEDC PWM timer configuration
-    ledc_timer_config_t ledc_timer = {
-        .speed_mode       = LEDC_MODE,
-        .timer_num        = LEDC_TIMER,
-        .duty_resolution  = LEDC_DUTY_RES,
-        .freq_hz          = LEDC_FREQUENCY,  // Set output frequency at 4 kHz
-        .clk_cfg          = LEDC_AUTO_CLK
-    };
-    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
-
-    // Prepare and then apply the LEDC PWM channel configuration
-    ledc_channel_config_t ledc_channel = {
-        .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL_0,
-        .timer_sel      = LEDC_TIMER,
-        .intr_type      = LEDC_INTR_DISABLE,
-        .gpio_num       = LEDC_OUTPUT_IO,
-        .duty           = 0, // Set duty to 0%
-        .hpoint         = 0
-    };
-    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
-
-    ledc_channel_config_t ledc_channel2 = {
-        .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL_1,
-        .timer_sel      = LEDC_TIMER,
-        .intr_type      = LEDC_INTR_DISABLE,
-        .gpio_num       = LEDC_OUTPUT_IO2,
-        .duty           = 0, // Set duty to 0%
-        .hpoint         = 0
-    };
-    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel2));
-}
-
-void motor_set_level(int level)
-{
-    int duty;
-    switch (level)
-    {
-    case 0:
-        duty = 0;
+    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
+    event = event_data;
+    client = event->client;
+    switch ((esp_mqtt_event_id_t)event_id) {
+    case MQTT_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+        esp_mqtt_client_subscribe(client, control_topic, qos);
         break;
-    case 1:
-        duty = 50;
+    case MQTT_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         break;
-    case 2:
-        duty = 75;
+    case MQTT_EVENT_SUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
         break;
-    default:
-        duty = 90;
+    case MQTT_EVENT_UNSUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
         break;
-    }
-    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_0, duty));
-    // Update duty to apply the new value
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_0));
-}
-
-static void mqtt_app_start(void)
-{
-    esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = "mqtt://mqtt.flespi.io:1883",
-        .credentials.username = "oWLsmINUN4kOw7FTJ8DDzuu24lS5aYUvsxqbJu6A8VgG3aoJ6OZC8GmTQw3LG4At",
-        .credentials.authentication.password = "",
-        .credentials.client_id = "esp3201",
-    };
-
-    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
-    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
-    esp_mqtt_client_start(client);
-}
-
-void device_ctrl_start(void * parm)
-{
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-    while (1)
-    {
-        printf("Led state: %d\n", lightState);
-        printf("Fan state: %d\n", fanState);
-        printf("Door state: %d\n", doorState);
+    case MQTT_EVENT_PUBLISHED:
+        ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_DATA:
+        ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+        printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+        printf("DATA=%.*s\r\n", event->data_len, event->data);
+        cJSON *root = cJSON_Parse(event->data);
+        if (root == NULL) {
+            printf("Can not parse JSON.\n");
+        }
+        cJSON *lstate = cJSON_GetObjectItemCaseSensitive(root, "Light");
+        lightState = lstate->valueint;
+        cJSON *dstate = cJSON_GetObjectItemCaseSensitive(root, "Door");
+        doorState = dstate->valueint;
+        cJSON *fstate = cJSON_GetObjectItemCaseSensitive(root, "Fan");
+        fanState = fstate->valueint;
+        cJSON_Delete(root);
         if(doorState == 1)
         {
             ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator, example_angle_to_compare(90)));
@@ -522,8 +453,47 @@ void device_ctrl_start(void * parm)
             gpio_set_level(GPIO_NUM_2, 0);
         }
         motor_set_level(fanState);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        printf("Led state: %d\n", lightState);
+        printf("Fan state: %d\n", fanState);
+        printf("Door state: %d\n", doorState);
+        break;
+    case MQTT_EVENT_ERROR:
+        ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
+            log_error_if_nonzero("reported from esp-tls", event->error_handle->esp_tls_last_esp_err);
+            log_error_if_nonzero("reported from tls stack", event->error_handle->esp_tls_stack_err);
+            log_error_if_nonzero("captured as transport's socket errno",  event->error_handle->esp_transport_sock_errno);
+            ESP_LOGI(TAG, "Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
+
+        }
+        break;
+    default:
+        ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+        break;
     }
+}
+
+static void mqtt_app_start(void)
+{
+    // esp_mqtt_client_config_t mqtt_cfg = {
+    //     .broker.address.uri = "mqtt://mqtt.flespi.io",
+    //     .credentials.username = "oWLsmINUN4kOw7FTJ8DDzuu24lS5aYUvsxqbJu6A8VgG3aoJ6OZC8GmTQw3LG4At",
+    //     .credentials.authentication.password = "",
+    //     .credentials.client_id = "esp3201",
+    //     .broker.address.port = 1883,
+    // };
+
+    esp_mqtt_client_config_t mqtt_cfg = {
+        .broker.address.uri = "mqtt://broker.emqx.io",
+        .credentials.username = "esp32",
+        .credentials.authentication.password = "d123456",
+        .credentials.client_id = "esp3202",
+
+    };
+
+    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+    esp_mqtt_client_start(client);
 }
 
 void app_main(void)
@@ -551,12 +521,12 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    err = print_what_saved();
+    err = get_wifi_user_config();
     if (err != ESP_OK) printf("Error (%s) reading data from NVS!\n", esp_err_to_name(err));
     
+    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
     wifi_connection();
     mqtt_app_start();
     servo_ctrl_init();
-    motor_ctrl_init();
-    xTaskCreate(device_ctrl_start, "device control task", 4096, NULL, 3, NULL);
+    // motor_control_init();
 }

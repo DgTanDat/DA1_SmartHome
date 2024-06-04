@@ -1,0 +1,260 @@
+html {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    display: inline-block;
+    text-align: center;
+}
+
+body {
+    margin: 0;
+    width: 100%;
+}
+
+.topnav {
+    overflow: hidden;
+    background-color: #52d6df;
+    color: white;
+    font-size: 1rem;
+    padding: 5px;
+}
+
+#authentication-bar{
+    background-color:mintcream;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+#user-details{
+    color: cadetblue;
+}
+
+.content {
+    padding: 20px;
+}
+
+.card {
+    background-color: white;
+    box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
+    padding: 5%;
+    border-radius: 10px;
+}
+
+.cards {
+    max-width: 1000px;
+    margin: 0 auto;
+    margin-bottom: 10px;
+    display: grid;
+    grid-gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 2fr));
+}
+
+.devices_box {
+    max-width: 1000px;
+    margin: 0 auto;
+    margin-bottom: 10px;
+    display: grid;
+    grid-gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 2fr));
+}
+
+.box{
+    max-width: 1000px;
+    margin: 0 auto;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 25% 25% 25% 25%;
+    background-color: #c4f9fd;
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-text{
+    background: #c4f9fd;
+    border-radius: 5px;
+}
+
+.reading {
+    color: #193036;
+}
+
+.date-time{
+    font-size: 0.8rem;
+    color: #023341;
+}
+
+button {
+    background-color: #154894;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+button:hover {
+   opacity: 0.8;
+}
+.deletebtn{
+    background-color: #c52c2c;
+}
+
+.btn_off{
+    background-color: #023341;
+}
+
+.form-elements-container{
+    padding: 16px;
+    width: 250px;
+    margin: 0 auto;
+}
+
+input[type=text], input[type=password] {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+table {
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+}   
+tr, td {
+    padding: 0.25rem;
+}
+tr:nth-child(even) {
+    background-color: #f2f2f2
+}
+tr:hover {
+    background-color: #ddd;
+}
+th {
+    position: sticky;
+    top: 0;
+    background-color: #50b8b4;
+    color: white;
+}
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: #474e5d;
+    padding-top: 50px;
+}
+  
+/* Modal Content/Box */
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+  
+/* Style the horizontal ruler */
+hr {
+    border: 1px solid #f1f1f1;
+    margin-bottom: 25px;
+}
+
+/* The Modal Close Button (x) */
+.close {
+    position: absolute;
+    right: 35px;
+    top: 15px;
+    font-size: 40px;
+    font-weight: bold;
+    color: #f1f1f1;
+}
+
+.close:hover,
+.close:focus {
+    color: #f44336;
+    cursor: pointer;
+}
+
+/* Clear floats */
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+/* Change styles for cancel button and delete button on extra small screens */
+@media screen and (max-width: 300px) {
+    .cancelbtn, .deletebtn {
+        width: 100%;
+    }
+}
+
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+  }
+  
+  /* Hide default HTML checkbox */
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  /* The slider */
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  input:checked + .slider {
+    background-color: #2196F3;
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 34px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
