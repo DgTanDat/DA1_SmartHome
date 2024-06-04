@@ -1,1 +1,2 @@
-![image](https://github.com/DgTanDat/DA1_SmartHome/assets/133846481/836fec32-206e-4c38-a5ac-34ab58ddaceb)
+![image](https://github.com/DgTanDat/DA1_SmartHome/assets/133846481/f29104d4-6be8-479a-b273-68e0ff98b829)
+
