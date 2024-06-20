@@ -33,6 +33,10 @@
 
     </script>
 
+    <!-- add font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <!-- include highchartsjs to build the charts-->
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <!-- include to use jquery-->
@@ -62,7 +66,7 @@
   <body>
 
     <!--TOP BAR-->
-    <div class="topnav">
+    <div class="topnav" id="top-nav" style="display: none;">
       <h1>Smart Home <i class="fas fa-clipboard-list"></i></h1>
     </div>
 
@@ -74,25 +78,34 @@
       </p>
     </div>
 
-    <!--LOGIN FORM-->
-    <form id="login-form" style="display: none;">
-      <div class="form-elements-container">
-        <label for="input-email"><b>Email</b></label>
-        <input type="text" placeholder="Enter Username" id="input-email" required>
-
-        <label for="input-password"><b>Password</b></label>
-        <input type="password" placeholder="Enter Password" id="input-password" required>
-
-        <button type="submit" id="login-button">Login</button>
-        <p id="error-message" style="color:red;"></p>
+    <div id="login-box-content">
+      <div id="login-box">
+        <div class="title">Sign in</div>
+        <!--LOGIN FORM-->
+        <form id="login-form" style="display: none;">
+          <div class="form-elements-container">
+            <div class="login_element">              
+              <input type="text"  id="input-email" required>
+              <label for="input-email"><b>Email</b></label>              
+            </div>
+            <div class="login_element">            
+              <input type="password"  id="input-password" required>
+              <label for="input-password"><b>Password</b></label>
+            </div>
+            <div class="login_element">
+              <button type="submit" id="login-button">Login</button>
+            </div>
+          </div>
+        </form>
       </div>
-    </form>
-
+    </div>
+    
     <!--CONTENT (SENSOR READINGS)-->
     <div class="content-sign-in" id="content-sign-in" style="display: none;">
 
       <!--LAST UPDATE-->
-      <p><span class ="date-time">Last update: <span id="lastUpdate"></span></span></p>
+      <p><span class ="date-time">Sensor Node last update: <span id="lastUpdate"></span></span></p>
+      <p><span class ="date-time">Device Node last response: <span id="lastResponse"></span></span></p>
       <div id="cards-div">
         <div class="cards">
           <!--TEMPERATURE-->
@@ -138,8 +151,8 @@
         <!--VOICE RECOGNITION-->
         <div class="card">
           <p><i class="fa-solid fa-microphone"></i> VOICE CONTROL</p>
-          <p id="transcript">Nhận dạng giọng nói sẽ xuất hiện ở đây...</p>
           <button id="start-btn">START</button>
+          <p id="transcript">Nhận dạng giọng nói sẽ xuất hiện ở đây...</p>
         </div>
         <!-- DOOR STATE -->
         <div class="card">
@@ -171,6 +184,16 @@
             <button type="button" class="btn_on" id="fan-btnon1">1</button>
             <button type="button" class="btn_on" id="fan-btnon2">2</button>
           </div>
+        </div>
+      </div>
+
+      <div class="timer_div" id="timer_box">
+        <!--LIGHT TIMER-->
+        <div class="box">
+          <p><i class="fa-solid fa-clock"></i> LIGHT TIMER:</p>
+          <input type="time" id="ltimer">
+          <button type="button" class="btn_timer" id="set_timer_btn">SET</button>
+          <button type="button" class="btn_timer" id="clr_timer_btn">CLEAR</button>
         </div>
       </div>
 

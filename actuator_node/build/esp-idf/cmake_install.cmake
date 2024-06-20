@@ -422,3 +422,13 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/main/cmake_install.cmake")
 endif()
 
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/fan/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/servo/cmake_install.cmake")
+endif()
+

@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "sensor_node",
-    "project_version":    "bc15772-dirty",
+    "project_version":    "eccbb96-dirty",
     "project_path":       "D:/Git/DA1_SmartHome/sensor_node",
     "idf_path":           "C:/Users/HP/esp/v5.2.1/esp-idf",
     "build_dir":          "D:/Git/DA1_SmartHome/sensor_node/build",

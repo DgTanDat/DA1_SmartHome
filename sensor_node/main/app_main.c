@@ -39,7 +39,7 @@
 
 static const char *TAG = "mqtt_example";
 #define USER_SSID "d"
-#define USER_PASSWORD "21521922"
+#define USER_PASSWORD "21521929"
 #define STORAGE_NAMESPACE "storage"
 
 #define DHT22_PIN GPIO_NUM_4
@@ -60,13 +60,14 @@ static void log_error_if_nonzero(const char *message, int error_code)
 
 int retry_num=0;
 float temperature, humidity;
-char topic1[50] = "esp32/Sensor";
+char sensorTopic[50] = "esp32/Sensor";
+char epoch_time_topic[50] = "esp32/Epoch_time";
 char deviceName[20] = "SensorNode-1";
 char data[256];
 float temp = 0;
 int qos = 1;
 uint8_t uwifi_ssid[32] = "d";
-uint8_t uwifi_password[64] = "21521922";
+uint8_t uwifi_password[64] = "21521929";
 
 static void smartconfig_example_task(void * parm);
 
@@ -362,7 +363,33 @@ static void mqtt_app_start(void)
     esp_mqtt_client_start(client);
 }
 
+void sensor_app(void *pvParameter)
+{
+    while (1)
+    {
+        if (dht_read_float_data(DHT22_PIN, &humidity, &temperature) == ESP_OK)
+        {
+            printf("Humidity: %.1f%% Temp: %.1fC\n", humidity, temperature);
+        }
+        else
+        {
+            printf("Could not read data from sensor\n");
+        }
+            
+        int brightness = adc1_get_raw(LDR_PIN);
+        printf("LDR: %d\n", brightness);
+        
+        int humanPresent = gpio_get_level(LD2410_PIN);
+        printf("Have human: %d\n", humanPresent);
 
+        sprintf(data, "device_name: %s, human_presence: %d, brightness: %d, temperature:%.1f, humidity:%.1f", deviceName, 
+        humanPresent, brightness, temperature, humidity);
+
+        esp_mqtt_client_publish(client, sensorTopic, data, sizeof(data), qos, 0);
+
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+    }
+}
 
 void app_main(void)
 {
@@ -400,26 +427,5 @@ void app_main(void)
 
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(LDR_PIN, ADC_ATTEN_DB_11);
-    while (1)
-    {
-        if (dht_read_float_data(DHT22_PIN, &humidity, &temperature) == ESP_OK)
-            printf("Humidity: %.1f%% Temp: %.1fC\n", humidity, temperature);
-        else
-            printf("Could not read data from sensor\n");
-        
-
-        int brightness = adc1_get_raw(LDR_PIN);
-        printf("LDR: %d\n", brightness);
-        
-
-        int humanPresent = gpio_get_level(LD2410_PIN);
-        printf("Have human: %d\n", humanPresent);
-
-        sprintf(data, "device_name: %s, human_presence: %d, brightness: %d, temperature:%.1f, humidity:%.1f", deviceName, 
-        humanPresent, brightness, temperature, humidity);
-
-        esp_mqtt_client_publish(client, topic1, data, sizeof(data), qos, 0);
-
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-    }
+    xTaskCreate( &sensor_app, "sensor_task", 2048, NULL, 5, NULL );
 }

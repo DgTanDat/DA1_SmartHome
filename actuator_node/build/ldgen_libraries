@@ -63,3 +63,5 @@ D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/spiffs/libspiffs.a
 D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/wifi_provisioning/libwifi_provisioning.a
 D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/protocol_examples_common/libprotocol_examples_common.a
 D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/main/libmain.a
+D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/fan/libfan.a
+D:/Git/DA1_SmartHome/actuator_node/build/esp-idf/servo/libservo.a

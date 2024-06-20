@@ -36,8 +36,9 @@
 #include "esp_smartconfig.h"
 #include "esp_mac.h"
 #include "cJSON.h"
-#include "driver/mcpwm_prelude.h"
-#include "driver/ledc.h"
+
+#include "fan.h"
+#include "servo.h"
 #include "driver/gpio.h"
 
 static const char *TAG = "mqtt_example";
@@ -46,31 +47,11 @@ static const char *TAG = "mqtt_example";
 #define WIFI_PASSWORD "21521929"
 #define STORAGE_NAMESPACE "storage"
 
-#define GPIO_PWM0A_OUT 26   //Set GPIO 15 as PWM0A
-#define GPIO_PWM0B_OUT 27   //Set GPIO 16 as PWM0B
-
-#define SERVO_MIN_PULSEWIDTH_US 500  // Minimum pulse width in microsecond
-#define SERVO_MAX_PULSEWIDTH_US 2500  // Maximum pulse width in microsecond
-#define SERVO_MIN_DEGREE        -90   // Minimum angle
-#define SERVO_MAX_DEGREE        90    // Maximum angle
-
-#define SERVO_PULSE_GPIO             GPIO_NUM_16        // GPIO connects to the PWM signal line
-#define SERVO_TIMEBASE_RESOLUTION_HZ 1000000  // 1MHz, 1us per tick
-#define SERVO_TIMEBASE_PERIOD        20000    // 20000 ticks, 20ms
-
-#define LEDC_TIMER              LEDC_TIMER_0
-#define LEDC_MODE               LEDC_LOW_SPEED_MODE
-#define LEDC_OUTPUT_IO          (GPIO_NUM_27) // Define the output GPIO
-#define LEDC_OUTPUT_IO2         (GPIO_NUM_26) // Define the output GPIO
-#define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
-#define LEDC_DUTY               (4096) // Set duty to 50%. (2 ** 13) * 50% = 4096
-#define LEDC_FREQUENCY          (4000) // Frequency in Hertz. Set frequency at 4 kHz
-
 static const int CONNECTED_BIT = BIT0;
 static const int ESPTOUCH_DONE_BIT = BIT1;
 static const char *WIFI_TAG = "smartconfig_example";
 static EventGroupHandle_t s_wifi_event_group;
-mcpwm_cmpr_handle_t comparator;
+
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -81,7 +62,8 @@ static void log_error_if_nonzero(const char *message, int error_code)
 
 int retry_num=0;
 char control_topic[50] = "esp32/Control";
-char topic1[50] = "esp32/StateDv";
+char deviceState_topic[50] = "esp32/StateDv";
+char deviceName[20] = "DevicesNode-1";
 char data[256];
 int lightState = -1;
 int doorState = -1;
@@ -90,11 +72,6 @@ int qos = 1;
 char key[20] = {};
 uint8_t uwifi_ssid[32] = "d";
 uint8_t uwifi_password[64] = "21521929";
-
-static inline uint32_t example_angle_to_compare(int angle)
-{
-    return (angle - SERVO_MIN_DEGREE) * (SERVO_MAX_PULSEWIDTH_US - SERVO_MIN_PULSEWIDTH_US) / (SERVO_MAX_DEGREE - SERVO_MIN_DEGREE) + SERVO_MIN_PULSEWIDTH_US;
-}
 
 static void smartconfig_example_task(void * parm);
 
@@ -177,34 +154,6 @@ esp_err_t save_wifi_inf(uint8_t* wifi_ssid, uint8_t* wifi_password)
     // Close
     nvs_close(my_handle);
     return ESP_OK;
-}
-
-void motor_set_level(int level)
-{
-    int duty;
-    switch (level)
-    {
-    case 0:
-        duty = 0;
-        break;
-    case 1:
-        duty = 50;
-        break;
-    case 2:
-        duty = 95;
-        break;
-    default:
-        duty = 0;
-        break;
-    }
-    // if(duty != 0)
-    // {
-    //     brushed_motor_forward(MCPWM_UNIT_0, MCPWM_TIMER_0, duty);
-    // }
-    // else
-    // {
-    //     brushed_motor_stop(MCPWM_UNIT_0, MCPWM_TIMER_0);
-    // }
 }
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
@@ -346,57 +295,6 @@ static void smartconfig_example_task(void * parm)
     }
 }
 
-void servo_ctrl_init()
-{
-    ESP_LOGI(TAG, "Create timer and operator");
-    mcpwm_timer_handle_t timer = NULL;
-    mcpwm_timer_config_t timer_config = {
-        .group_id = 0,
-        .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
-        .resolution_hz = SERVO_TIMEBASE_RESOLUTION_HZ,
-        .period_ticks = SERVO_TIMEBASE_PERIOD,
-        .count_mode = MCPWM_TIMER_COUNT_MODE_UP,
-    };
-    ESP_ERROR_CHECK(mcpwm_new_timer(&timer_config, &timer));
-
-    mcpwm_oper_handle_t oper = NULL;
-    mcpwm_operator_config_t operator_config = {
-        .group_id = 0, // operator must be in the same group to the timer
-    };
-    ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &oper));
-
-    ESP_LOGI(TAG, "Connect timer and operator");
-    ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper, timer));
-
-    ESP_LOGI(TAG, "Create comparator and generator from the operator");
-    comparator = NULL;
-    mcpwm_comparator_config_t comparator_config = {
-        .flags.update_cmp_on_tez = true,
-    };
-    ESP_ERROR_CHECK(mcpwm_new_comparator(oper, &comparator_config, &comparator));
-
-    mcpwm_gen_handle_t generator = NULL;
-    mcpwm_generator_config_t generator_config = {
-        .gen_gpio_num = SERVO_PULSE_GPIO,
-    };
-    ESP_ERROR_CHECK(mcpwm_new_generator(oper, &generator_config, &generator));
-
-    // set the initial compare value, so that the servo will spin to the center position
-    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator, example_angle_to_compare(0)));
-
-    ESP_LOGI(TAG, "Set generator action on timer and compare event");
-    // go high on counter empty
-    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_timer_event(generator,
-                                                              MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, MCPWM_TIMER_EVENT_EMPTY, MCPWM_GEN_ACTION_HIGH)));
-    // go low on compare threshold
-    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(generator,
-                                                                MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comparator, MCPWM_GEN_ACTION_LOW)));
-
-    ESP_LOGI(TAG, "Enable and start timer");
-    ESP_ERROR_CHECK(mcpwm_timer_enable(timer));
-    ESP_ERROR_CHECK(mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP));
-}
-
 esp_mqtt_event_handle_t event;
 esp_mqtt_client_handle_t client;
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -429,33 +327,64 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         if (root == NULL) {
             printf("Can not parse JSON.\n");
         }
-        cJSON *lstate = cJSON_GetObjectItemCaseSensitive(root, "Light");
-        lightState = lstate->valueint;
-        cJSON *dstate = cJSON_GetObjectItemCaseSensitive(root, "Door");
-        doorState = dstate->valueint;
-        cJSON *fstate = cJSON_GetObjectItemCaseSensitive(root, "Fan");
-        fanState = fstate->valueint;
+        cJSON *lstate = cJSON_GetObjectItemCaseSensitive(root, "light");
+        // lightState = lstate->valueint;
+        lightState = atoi(lstate->valuestring);
+        cJSON *dstate = cJSON_GetObjectItemCaseSensitive(root, "door");
+        // doorState = dstate->valueint;
+        doorState = atoi(dstate->valuestring);
+        cJSON *fstate = cJSON_GetObjectItemCaseSensitive(root, "fan");
+        // fanState = fstate->valueint;
+        fanState = atoi(fstate->valuestring);
         cJSON_Delete(root);
+        esp_err_t ert;
         if(doorState == 1)
         {
-            ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator, example_angle_to_compare(90)));
+            ert = servo_set_angle(90);
         }
         else
         {
-            ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator, example_angle_to_compare(0)));
+            ert = servo_set_angle(0);
+        }
+        if(ert != ESP_OK)
+        {
+            doorState = -1;
         }
         if(lightState == 1)
         {
-            gpio_set_level(GPIO_NUM_2, 1);
+            ert = gpio_set_level(GPIO_NUM_4, 1);
         }
         else
         {
-            gpio_set_level(GPIO_NUM_2, 0);
+            ert = gpio_set_level(GPIO_NUM_4, 0);
         }
-        motor_set_level(fanState);
+        if(ert != ESP_OK)
+        {
+            lightState = -1;
+        }
+        if(fanState == 2)
+        {
+            ert = motor_set_speed(6000);
+        }
+        else if(fanState == 1)
+        {
+            ert = motor_set_speed(3000);
+        }
+        else
+        {
+            ert = motor_set_speed(0);
+        }
+        if(ert != ESP_OK)
+        {
+            lightState = -1;
+        }
         printf("Led state: %d\n", lightState);
         printf("Fan state: %d\n", fanState);
         printf("Door state: %d\n", doorState);
+        sprintf(data, "device_name: %s, light:%d, fan:%d, door:%d", deviceName, lightState, 
+        fanState, doorState);
+
+        esp_mqtt_client_publish(client, deviceState_topic, data, sizeof(data), qos, 0);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -524,9 +453,9 @@ void app_main(void)
     err = get_wifi_user_config();
     if (err != ESP_OK) printf("Error (%s) reading data from NVS!\n", esp_err_to_name(err));
     
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
     wifi_connection();
     mqtt_app_start();
     servo_ctrl_init();
-    // motor_control_init();
+    motor_init();
 }

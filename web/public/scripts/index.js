@@ -17,8 +17,11 @@ const authBarElement = document.querySelector('#authentication-bar');
 const viewDataButtonElement = document.getElementById('view-data-button');
 const hideDataButtonElement = document.getElementById('hide-data-button');
 const tableContainerElement = document.querySelector('#table-container');
-// const chartsRangeInputElement = document.getElementById('charts-range');
 const loadDataButtonElement = document.getElementById('load-data');
+const loginBoxElement = document.getElementById('login-box')
+const topNavElement = document.getElementById('top-nav');
+const timerValueElement = document.getElementById('ltimer');
+const timerElement = document.getElementById("timer_box");
 
 // DOM elements for sensor readings
 const cardsReadingsElement = document.querySelector("#cards-div");
@@ -29,9 +32,11 @@ const humanElement = document.getElementById("pres");
 const brnsElement = document.getElementById("brns");
 const modeElement = document.getElementById("mode");
 const updateElement = document.getElementById("lastUpdate");
+const responseElement = document.getElementById("lastResponse");
 const dstateElement = document.getElementById("door_state");
 const fstateElement = document.getElementById("fan_state");
 const lstateElement = document.getElementById("light_state");
+
 
 //button 
 const startBtn = document.getElementById('start-btn');
@@ -43,6 +48,8 @@ const lBtnOn = document.getElementById('light-btnon');
 const fBtnOff = document.getElementById('fan-btnoff');
 const fBtnOn1 = document.getElementById('fan-btnon1');
 const fBtnOn2 = document.getElementById('fan-btnon2');
+const setTimer = document.getElementById('set_timer_btn');
+const clrTimer = document.getElementById('clr_timer_btn');
 
 //image
 const fanImg = document.getElementById('fanimg');
@@ -53,6 +60,8 @@ const doorImg = document.getElementById('doorimg');
 const setupUI = (user) => {
   if (user) {
     //toggle UI elements
+    topNavElement.style.display = 'block';
+    loginBoxElement.style.display = 'none';
     loginElement.style.display = 'none';
     contentElement.style.display = 'block';
     authBarElement.style.display ='block';
@@ -68,10 +77,16 @@ const setupUI = (user) => {
     // var chartPath = 'UsersData/' + uid.toString() + '/charts/range';
 
     // Database references
-    var dbRef = firebase.database().ref('firebase');
-    var moderef = firebase.database().ref('/');
-    var deviceref = firebase.database().ref('devices');
+    var dbRef = firebase.database().ref('SmartHome/SensorData');
+    var moderef = firebase.database().ref('SmartHome/');
+    var deviceref = firebase.database().ref('SmartHome/devices');
+    var timerref = firebase.database().ref('SmartHome/lighttimer');
+    var resref = firebase.database().ref('SmartHome/devices_stateCheck');
     
+    var doorState;
+    var fanState;
+    var lightState;
+
     //voice recognition
     let recognizing = false;
     let recognition = new window.webkitSpeechRecognition() || new window.SpeechRecognition();
@@ -102,65 +117,51 @@ const setupUI = (user) => {
         }
         transcript.textContent = interimTranscript;
     }
-    startBtn.onclick = function() {
-      return;
-    }
 
-    startBtn.onmousedown = function() {
+    function mouseDown() {
         recognition.start();
     }
-    startBtn.onmouseup = function() {
+
+    function mouseUp() {
         if (recognizing) {
-            if(transcript.textContent.search("mở đèn") != -1  || transcript.textContent.search("Mở đèn") != -1)
-            {
-              deviceref.update({
-                'Light': 1
-              });
-              alert("Đã mở đèn!"); 
-            }
-            if(transcript.textContent.search("tắt đèn") != -1  || transcript.textContent.search("Tắt đèn") != -1)
-            {
-              deviceref.update({
-                'Light': 0
-              });
-              alert("Đã tắt đèn!");            
-            }
-            if(transcript.textContent.search("mở cửa") != -1  || transcript.textContent.search("Mở cửa") != -1)
-            {
-              deviceref.update({
-                'Door': 1
-              });
-              alert("Đã mở cửa!");                
-            }
-            if(transcript.textContent.search("đóng cửa") != -1  || transcript.textContent.search("Đóng cửa") != -1)
-            {
-              deviceref.update({
-                'Door': 0
-              });
-              alert("Đã đóng cửa!");                
-            }
-            if(transcript.textContent.search("bật quạt") != -1  || transcript.textContent.search("Bật quạt") != -1 || transcript.textContent.search("mở quạt") != -1)
-            {
-              deviceref.update({
-                'Fan': 1
-              });
-              alert("Đã bật quạt mức 1!");                
-            }
-            if(transcript.textContent.search("tắt quạt") != -1  || transcript.textContent.search("Tắt quạt") != -1)
-            {
-              deviceref.update({
-                'Fan': 0
-              });
-              alert("Đã tắt quạt!");                
-            }
-            if(transcript.textContent.search("lạnh quá") != -1  || transcript.textContent.search("giảm tốc độ quạt") != -1)
-            {
-                alert("Đã giảm tốc độ quạt!");
-            }
-            recognition.stop();
-            return;
+          var json = {};
+          if(transcript.textContent.search("mở đèn") != -1  || transcript.textContent.search("Mở đèn") != -1 || transcript.textContent.search("Mở Đèn") != -1
+          || transcript.textContent.search("bật đèn") != -1 || transcript.textContent.search("Bật đèn") != -1 || transcript.textContent.search("Bật Đèn") != -1)
+          {
+            json.light = '1';
+          }
+          if(transcript.textContent.search("tắt đèn") != -1  || transcript.textContent.search("Tắt đèn") != -1 || transcript.textContent.search("Tắt Đèn") != -1)
+          {
+            json.light = '0';           
+          }
+          if(transcript.textContent.search("mở cửa") != -1  || transcript.textContent.search("Mở cửa") != -1 || transcript.textContent.search("Mở Cửa") != -1)
+          {
+            json.door = '1';             
+          }
+          if(transcript.textContent.search("đóng cửa") != -1  || transcript.textContent.search("Đóng cửa") != -1 || transcript.textContent.search("Đóng Cửa") != -1)
+          {
+            json.door = '0';                
+          }
+          if(transcript.textContent.search("bật quạt") != -1  || transcript.textContent.search("Bật quạt") != -1 || transcript.textContent.search("Bật Quạt") != -1 
+          || transcript.textContent.search("mở quạt") != -1 || transcript.textContent.search("Mở quạt") != -1 || transcript.textContent.search("Mở Quạt") != -1)
+          {
+            json.fan = '1';            
+          }
+          if(transcript.textContent.search("tắt quạt") != -1  || transcript.textContent.search("Tắt quạt") != -1 || transcript.textContent.search("Tắt Quạt") != -1)
+          {
+            json.fan = '0';         
+          }
+          deviceref.update(json);
+          recognition.stop();
+          transcript.textContent = '';
+          return;
         }
     };
+
+    startBtn.addEventListener("mouseup", mouseUp);
+    startBtn.addEventListener("mousedown", mouseDown);
+    startBtn.addEventListener("touchstart", mouseDown);
+    startBtn.addEventListener("touchend", mouseUp);
 
     // CHARTS
     chartT = createTemperatureChart();
@@ -200,6 +201,7 @@ const setupUI = (user) => {
         fBtnOff.style.display = 'inline-block';
         fBtnOn1.style.display = 'inline-block';
         fBtnOn2.style.display = 'inline-block';
+        timerElement.style.display = 'block';
       }
       else{
         $('#mode_checkbox').prop('checked', false);
@@ -211,8 +213,10 @@ const setupUI = (user) => {
         fBtnOff.style.display = 'none';
         fBtnOn1.style.display = 'none';
         fBtnOn2.style.display = 'none';
+        timerElement.style.display = 'none';
       }
     });
+    
     // Get the latest readings and display on cards
     dbRef.orderByKey().limitToLast(1).on('child_added', snapshot =>{
       var jsonData = snapshot.toJSON(); 
@@ -220,9 +224,9 @@ const setupUI = (user) => {
       var humidity = jsonData.humidity;
       var human_presence = jsonData.human_presence;
       var bness = jsonData.brightness;
-      var timest = jsonData.timeStamp
+      var timest = jsonData.timeStamp;
       let haveHuman;
-      if(human_presence == 1) 
+      if(human_presence == '1') 
       {
         haveHuman = "Yes";
       }
@@ -241,30 +245,55 @@ const setupUI = (user) => {
     //get device's state
     deviceref.orderByKey().on('value', snapshot => {
       var jsonData = snapshot.toJSON(); 
-      var doorState = jsonData.Door;
-      var fanState = jsonData.Fan;
-      var lightState = jsonData.Light;
-      if(doorState == 1){
+      doorState = jsonData.door;
+      fanState = jsonData.fan;
+      lightState = jsonData.light;
+      if(doorState == '1'){
         doorImg.src = "image/doorOPEN.png";
       }
       else{
         doorImg.src = "image/doorCLOSE.png";
       }
-      if(lightState == 1){
+      if(lightState == '1'){
         lightImg.src = "image/lightON.png";
       }
       else{
         lightImg.src = "image/lightOFF.png";
       }
-      if(fanState == 2){
+      if(fanState == '2'){
         fanImg.src = "image/fan2.png"
       }
-      else if(fanState == 1){
+      else if(fanState == '1'){
         fanImg.src = "image/fan1.png"
       }
       else{
         fanImg.src = "image/fan0.png"
       }
+    });
+
+    //compare response state with system state
+    resref.on('value', snapshot =>{
+      var json = snapshot.toJSON();
+      var restime = json.timeStamp;
+      var door = json.door;
+      var fan = json.fan;
+      var light = json.light;
+      if(door !== doorState){
+        alert('Door have some problems!');
+      }
+      if(fan !== fanState){
+        alert('Fan have some problems!');
+      }
+      if(light !== lightState){
+        alert('Light have some problems!');
+      }
+      console.log(door);
+      console.log(doorState);
+      console.log(fan);
+      console.log(fanState);
+      console.log(light);
+      console.log(lightState);
+      responseElement.innerHTML = restime;
     });
 
     //Switch change mode
@@ -281,6 +310,7 @@ const setupUI = (user) => {
         fBtnOff.style.display = 'inline-block';
         fBtnOn1.style.display = 'inline-block';
         fBtnOn2.style.display = 'inline-block';
+        timerElement.style.display = 'block';
       }
       else {
         moderef.update({
@@ -294,53 +324,73 @@ const setupUI = (user) => {
         fBtnOff.style.display = 'none';
         fBtnOn1.style.display = 'none';
         fBtnOn2.style.display = 'none';
+        timerElement.style.display = 'none';
       }
     });
+    
 
     dBtnCl.addEventListener('click', (e) => {
       deviceref.update({
-        'Door': 0
+        'door': '0'
       });
     });
 
     dBtnOp.addEventListener('click', (e) => {
       deviceref.update({
-        'Door': 1
+        'door': '1'
       });
     });
 
     lBtnOff.addEventListener('click', (e) => {
       deviceref.update({
-        'Light': 0
+        'light': '0'
       });
     });
 
     lBtnOn.addEventListener('click', (e) => {
       deviceref.update({
-        'Light': 1
+        'light': '1'
       });
     });
 
     fBtnOff.addEventListener('click', (e) => {
       deviceref.update({
-        'Fan': 0
+        'fan': '0'
       });
     });
 
     fBtnOn1.addEventListener('click', (e) => {
       deviceref.update({
-        'Fan': 1
+        'fan': '1'
       });
     });
 
     fBtnOn2.addEventListener('click', (e) => {
       deviceref.update({
-        'Fan': 2
+        'fan': '2'
       });
     });
 
+    setTimer.addEventListener('click', (e) => {
+      var timerValue = timerValueElement.value;
+      if(timerValue !== ''){
+        var json = {};
+        json.enable = 'true';
+        json.timerValue = timerValue;
+        timerref.update(json);
+      }
+      else{
+        alert('Vui lòng chọn thời gian!');
+      }
+    });
+
+    clrTimer.addEventListener('click', (e) => {
+      var json = {};
+      json.enable = 'false';
+      timerref.update(json);
+    });
+
     // TABLE
-    var lastReadingTimestamp; //saves last timestamp displayed on the table
     // Function that creates the table with the first 100 readings
     function createTable(){
       $('#tbody').empty();
@@ -423,6 +473,8 @@ const setupUI = (user) => {
   // IF USER IS LOGGED OUT
   } else{
     // toggle UI elements
+    topNavElement.style.display = 'none';
+    loginBoxElement.style.display = 'block';
     loginElement.style.display = 'block';
     authBarElement.style.display ='none';
     userDetailsElement.style.display ='none';

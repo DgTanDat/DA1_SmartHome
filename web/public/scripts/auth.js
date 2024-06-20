@@ -29,8 +29,8 @@ document.addEventListener("DOMContentLoaded", function(){
         .catch((error) =>{
             const errorCode = error.code;
             const errorMessage = error.message;
-            document.getElementById("error-message").innerHTML = errorMessage;
             alert("Your account is not register!");
+            console.log(errorCode);
             console.log(errorMessage);
         });
     });

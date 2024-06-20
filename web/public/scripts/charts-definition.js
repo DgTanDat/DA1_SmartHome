@@ -4,6 +4,8 @@ window.addEventListener('load', onload);
 function onload(event){
   chartT = createTemperatureChart();
   chartH = createHumidityChart();
+  chartB = createBrightnessChart();
+  chartHP = createHumanPresenceChart();
 }
 
 // Create Temperature Chart
