@@ -88,12 +88,13 @@ const setupUI = (user) => {
     var lightState;
 
     //voice recognition
-    let recognizing = false;
-    let recognition = new window.webkitSpeechRecognition() || new window.SpeechRecognition();
+    var recognizing = false;
+    var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition;
+    var recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.lang = 'vi-VN'; // Đặt ngôn ngữ là tiếng Việt
     recognition.interimResults = true;
-    recognition.maxAlternatives = 1
+    recognition.maxAlternatives = 1;
     recognition.onstart = function() {
         recognizing = true;
         transcript.textContent = 'Hãy bắt đầu nói...';
@@ -142,15 +143,27 @@ const setupUI = (user) => {
           {
             json.door = '0';                
           }
-          if(transcript.textContent.search("bật quạt") != -1  || transcript.textContent.search("Bật quạt") != -1 || transcript.textContent.search("Bật Quạt") != -1 
+          
+          if(transcript.textContent.search("bật quạt số 2") != -1  || transcript.textContent.search("Bật quạt số 2") != -1 || transcript.textContent.search("Bật Quạt số 2") != -1 
+          || transcript.textContent.search("Bật Quạt Số 2") != -1)
+          {
+            json.fan = '2';            
+          }
+          else if(transcript.textContent.search("bật quạt số 1") != -1  || transcript.textContent.search("Bật quạt số 1") != -1 || transcript.textContent.search("Bật Quạt số 1") != -1 
+          || transcript.textContent.search("Bật Quạt Số 1") != -1)
+          {
+            json.fan = '1';            
+          } 
+          else if(transcript.textContent.search("bật quạt") != -1  || transcript.textContent.search("Bật quạt") != -1 || transcript.textContent.search("Bật Quạt") != -1 
           || transcript.textContent.search("mở quạt") != -1 || transcript.textContent.search("Mở quạt") != -1 || transcript.textContent.search("Mở Quạt") != -1)
           {
             json.fan = '1';            
           }
-          if(transcript.textContent.search("tắt quạt") != -1  || transcript.textContent.search("Tắt quạt") != -1 || transcript.textContent.search("Tắt Quạt") != -1)
+          else if(transcript.textContent.search("tắt quạt") != -1  || transcript.textContent.search("Tắt quạt") != -1 || transcript.textContent.search("Tắt Quạt") != -1)
           {
             json.fan = '0';         
           }
+          
           deviceref.update(json);
           recognition.stop();
           transcript.textContent = '';
@@ -278,13 +291,13 @@ const setupUI = (user) => {
       var door = json.door;
       var fan = json.fan;
       var light = json.light;
-      if(door !== doorState){
+      if(door == '-1'){
         alert('Door have some problems!');
       }
-      if(fan !== fanState){
+      if(fan == '-1'){
         alert('Fan have some problems!');
       }
-      if(light !== lightState){
+      if(light == '-1'){
         alert('Light have some problems!');
       }
       console.log(door);
@@ -378,6 +391,7 @@ const setupUI = (user) => {
         json.enable = 'true';
         json.timerValue = timerValue;
         timerref.update(json);
+        alert('Đã đặt thời gian hẹn giờ mở đèn!');
       }
       else{
         alert('Vui lòng chọn thời gian!');
@@ -388,6 +402,7 @@ const setupUI = (user) => {
       var json = {};
       json.enable = 'false';
       timerref.update(json);
+      alert('Đã hủy hẹn giờ!');
     });
 
     // TABLE

@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", function(){
             // close the login modal & reset form
             loginForm.reset();
             console.log(email);
+            window.location.reload(true);
         })
         .catch((error) =>{
             const errorCode = error.code;
