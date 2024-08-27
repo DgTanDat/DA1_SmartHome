@@ -10,34 +10,34 @@ Login Account:
 Email: abc@gmail.com
 Password: t123456
   Các tính năng đạt được:
-- Điều khiển thiết bị:
+  **Điều khiển thiết bị:**
 + Điều khiển từ xa qua web/app 
 + Có tích hợp điều khiển bằng giọng nói (web)
 + Có chế độ hẹn giờ mở đèn
 + Ghi nhận trạng thái lên hệ thống
 + Có nút nhấn điều khiển thủ công 
 + Điều chỉnh được tốc độ quạt
-- Cảm biến:
+  **Cảm biến:**
 + Gửi dữ liệu mỗi 10s
 + Cảm biến nhiệt độ - độ ẩm
 + Đo độ sáng
 + Cảm biến hiện diện con người
-- Website:
+  **Website:**
 + Chức năng đăng nhập
 + Hiển thị trạng thái thiết bị
 + Dữ liệu cảm biến
 + Biểu đồ
 + Các nút thao tác điều khiển
 + Deploy và host bằng Firebase
-- Mobile app:
+  **Mobile app:**
 + Hiển thị trạng thái thiết bị
 + Dữ liệu cảm biến
 + Biểu đồ
 + Các nút thao tác điều khiển
-- Chế độ hoạt động:
+  **Chế độ hoạt động:**
 + Tự động
 + Điều khiển tay
-- Tính năng khác:
+  **Tính năng khác:**
 + Cấu hình wifi qua ứng dụng SmartConfig
 + Ghi nhớ thông tin wifi mới nhất
 + Thông báo nếu thiết bị điều khiển gặp lỗi
