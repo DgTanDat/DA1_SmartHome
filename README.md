@@ -1,5 +1,6 @@
+![image](https://github.com/DgTanDat/DA1_SmartHome/assets/133846481/f29104d4-6be8-479a-b273-68e0ff98b829)  
   Các tính năng đạt được:  
-  **Điều khiển thiết bị:**
+  **Điều khiển thiết bị:**  
 + Điều khiển từ xa qua web/app 
 + Có tích hợp điều khiển bằng giọng nói (web)
 + Có chế độ hẹn giờ mở đèn
@@ -30,7 +31,7 @@
 + Cấu hình wifi qua ứng dụng SmartConfig
 + Ghi nhớ thông tin wifi mới nhất
 + Thông báo nếu thiết bị điều khiển gặp lỗi  
-![image](https://github.com/DgTanDat/DA1_SmartHome/assets/133846481/f29104d4-6be8-479a-b273-68e0ff98b829)
+
 Link demo: 
 Chức năng web/app
 https://youtu.be/RsthbuVZZQU
