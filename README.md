@@ -32,15 +32,15 @@
 + Ghi nhớ thông tin wifi mới nhất
 + Thông báo nếu thiết bị điều khiển gặp lỗi  
 
-Link demo: 
-Chức năng web/app
-https://youtu.be/RsthbuVZZQU
-Chức năng cấu hình wifi bằng smart config
-https://youtu.be/avsa9AKPvIA
-Link web:
-https://ce232-smhm.web.app
-Login Account:
-Email: abc@gmail.com
-Password: t123456
+Link demo:    
+Chức năng web/app    
+https://youtu.be/RsthbuVZZQU    
+Chức năng cấu hình wifi bằng smart config    
+https://youtu.be/avsa9AKPvIA   
+Link web:     
+https://ce232-smhm.web.app    
+Login Account:    
+Email: abc@gmail.com    
+Password: t123456    
 
 
